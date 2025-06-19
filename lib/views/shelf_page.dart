@@ -504,16 +504,6 @@ class _ShelfPageState extends State<ShelfPage> {
                       }
                     },
                   ),
-                  const SizedBox(width: 8),
-                  _buildActionButton(
-                    context: context,
-                    icon: Icons.delete_outline,
-                    label: 'Delete',
-                    color: AppColors.error,
-                    onPressed: () {
-                      _showDeleteConfirmation(context, shelf);
-                    },
-                  ),
                 ],
               ),
             ),
@@ -549,114 +539,6 @@ class _ShelfPageState extends State<ShelfPage> {
         ),
         onPressed: onPressed,
       ),
-    );
-  }
-
-  void _showDeleteConfirmation(
-    BuildContext context,
-    Map<String, dynamic> shelf,
-  ) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.warning_rounded, color: AppColors.error, size: 24),
-              const SizedBox(width: 12),
-              Text(
-                'Delete Shelf',
-                style: AppTextStyles.h4.copyWith(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Are you sure you want to delete this shelf?',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
-                ),
-                child: Text(
-                  'Shelf: ${shelf['shelfLabel'] ?? 'Unknown'}',
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.error,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'This action cannot be undone. All assets in this shelf will need to be relocated.',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: const Icon(Icons.delete_forever, size: 18),
-              label: Text(
-                'Delete',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // TODO: Implement delete shelf functionality
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Shelf "${shelf['shelfLabel']}" deleted'),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 }

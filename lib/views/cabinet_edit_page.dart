@@ -4,6 +4,8 @@ import 'package:digi4_mobile/blocs/locator/locator_bloc.dart';
 import 'package:digi4_mobile/models/locator_model.dart';
 import 'package:digi4_mobile/styles/color.dart';
 import 'package:digi4_mobile/styles/shared_typography.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class CabinetEditPage extends StatefulWidget {
   final Cabinet cabinet; // Update parameter untuk menerima Cabinet object
@@ -20,9 +22,8 @@ class CabinetEditPage extends StatefulWidget {
 }
 
 class _CabinetEditPageState extends State<CabinetEditPage> {
-  // final List<String> _cabinetTypes = ['OpenCabinet', 'ClosedCabinet'];
-
   String? _selectedCabinetType;
+  File? _newImage;
   late TextEditingController _labelController;
   late TextEditingController _cabinetTypeController;
   bool _isSubmitting = false;
@@ -41,10 +42,22 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
     _cabinetTypeController.addListener(_checkForChanges);
   }
 
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _newImage = File(picked.path);
+      });
+      _checkForChanges();   // ← wajib panggil di sini!
+    }
+  }
+
   void _checkForChanges() {
-    final hasChanges =
-        _labelController.text.trim() != widget.cabinet.cabinetName ||
-        _selectedCabinetType != widget.cabinet.cabinetType;
+    final nameChanged = _labelController.text.trim() != widget.cabinet.cabinetName;
+    final typeChanged = _selectedCabinetType != widget.cabinet.cabinetType;
+    final imageChanged = _newImage != null;    // ← baru
+
+    final hasChanges = nameChanged || typeChanged || imageChanged;
 
     if (hasChanges != _hasChanges) {
       setState(() {
@@ -52,13 +65,6 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
       });
     }
   }
-
-  // void _onCabinetTypeChanged(String? value) {
-  //   setState(() {
-  //     _selectedCabinetType = value;
-  //   });
-  //   _checkForChanges();
-  // }
 
   void _saveChanges() {
     if (_labelController.text.trim().isEmpty) {
@@ -102,6 +108,7 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
         plantId: widget.plantId,
         cabinetName: _labelController.text.trim(),
         cabinetType: _selectedCabinetType!,
+        imageFile: _newImage,
       ),
     );
   }
@@ -188,7 +195,8 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
               ),
           ],
         ),
-        body: Padding(
+      body: SafeArea(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,9 +287,9 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
               ),
               const SizedBox(height: 16),
 
-              // Cabinet Type Dropdown
+              // Cabinet Type input
               TextFormField(
-                controller: TextEditingController(text: _selectedCabinetType),
+                controller: _cabinetTypeController,
                 enabled: !_isSubmitting,
                 decoration: InputDecoration(
                   labelText: 'Cabinet Type',
@@ -345,6 +353,46 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
                 textCapitalization: TextCapitalization.words,
               ),
               const SizedBox(height: 24),
+
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.symmetric(vertical: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Update Cabinet Image',
+                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _isSubmitting ? null : _pickImage,
+                        icon: Icon(Icons.image_outlined),
+                        label: Text('Change Image'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                      ),
+                      if (_newImage != null) ...[
+                        const SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            _newImage!,
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
 
               // Changes indicator
               if (_hasChanges && !_isSubmitting)
@@ -474,6 +522,7 @@ class _CabinetEditPageState extends State<CabinetEditPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

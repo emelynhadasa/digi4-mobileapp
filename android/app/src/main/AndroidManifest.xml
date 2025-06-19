@@ -2,7 +2,7 @@
 <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:usesCleartextTraffic="true"
-        android:label="digi4_mobile"
+        android:label="DIGI4"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         >

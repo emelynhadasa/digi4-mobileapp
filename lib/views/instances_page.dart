@@ -1,4 +1,3 @@
-
 import 'package:digi4_mobile/routes.dart';
 import 'package:digi4_mobile/styles/color.dart';
 import 'package:digi4_mobile/styles/shared_typography.dart';
@@ -11,8 +10,9 @@ import 'package:digi4_mobile/models/assets_model.dart';
 class InstancesPage extends StatefulWidget {
   final String? assetId;
   final String? assetName;
+  final int? assetCategoryId;
 
-  const InstancesPage({super.key, this.assetId, this.assetName});
+  const InstancesPage({super.key, this.assetId, this.assetName, this.assetCategoryId});
 
   @override
   _InstancesPageState createState() => _InstancesPageState();
@@ -28,6 +28,7 @@ class _InstancesPageState extends State<InstancesPage>
   @override
   void initState() {
     super.initState();
+    print('>>> assetCategoryId: ${widget.assetCategoryId}');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_hasInitialized) {
         _hasInitialized = true;
@@ -78,13 +79,44 @@ class _InstancesPageState extends State<InstancesPage>
 
   // Convert AssetInstances model to Map for UI compatibility
   List<Map<String, dynamic>> _convertAssetsToMap(
-    List<AssetInstances> instances,
-  ) {
+      List<AssetInstances> instances,
+      ) {
     return instances.map((instance) {
+      // 1) Tentukan apakah instance ini Consumable atau Reusable
+      final isConsumable = _getAssetTypeFromInstance(instance) == 'Consumable';
+
+      // 2) Ambil plant dari lokasi (misal segmen pertama sebelum '/')
+      final parts = (instance.location ?? '').split('/');
+      final plant = parts.isNotEmpty ? parts.first.trim() : 'Unknown Plant';
+
+      // 3) Coba ambil shelfId; jika null, parse dari lokasi (ambil segmen terakhir jika diawali 'Shelf')
+      String shelfValue;
+      if (instance.shelfId != null) {
+        shelfValue = instance.shelfId!.toString();
+      } else {
+        final lastPart = parts.isNotEmpty ? parts.last.trim() : '';
+        if (lastPart.toLowerCase().startsWith('shelf')) {
+          shelfValue = lastPart; // misal "Shelf B"
+        } else {
+          shelfValue = 'No Shelf';
+        }
+      }
+
+      // 4) Siapkan tiga field consumable (jika memang consumable)
+      final qtyValue = isConsumable
+          ? (instance.quantity?.toString() ?? '')
+          : null;
+      final restockValue = isConsumable
+          ? (instance.restockThreshold?.toString() ?? '')
+          : null;
+      final shelfLifeValue = isConsumable
+          ? (instance.shelfLife?.toString() ?? '')
+          : null;
+
       return {
-        'instanceId': instance.instanceId.toString() ?? 'Unknown',
-        'assetId': instance.assetId.toString() ?? 'Unknown',
-        'qrCodeId': instance.qrCodeId.toString() ?? 'Unknown',
+        'instanceId': instance.instanceId.toString(),
+        'assetId': instance.assetId.toString(),
+        'qrCodeId': instance.qrCodeId.toString(),
         'qrCodeUrl': instance.encodedData != null
             ? 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${instance.encodedData}'
             : '',
@@ -99,17 +131,22 @@ class _InstancesPageState extends State<InstancesPage>
             ? '${instance.lifetime} Years'
             : 'N/A',
         'serialNumber': instance.serialNumber ?? 'N/A',
-        // 'qty': instance.quantity ?? 1,
-        'plant': _extractPlantFromLocation(instance.location ?? ''),
-        'shelf': instance.shelfId?.toString() ?? 'No Shelf',
+        'plant': plant,
+        'shelf': shelfValue,
         'shelfId': instance.shelfId,
-        // 'restockThreshold': instance.restockThreshold ?? 1,
-        // 'shelfLife': instance.shelfLife != null ? '${instance.shelfLife} days' : 'N/A',
+
+        // 5) Hanya sertakan field consumable jika isConsumable == true
+        if (isConsumable) ...{
+          'qty': qtyValue,
+          'restockThreshold': restockValue,
+          'shelfLife': shelfLifeValue,
+        },
+
         'assetName': _getAssetNameFromInstance(instance),
         'brand': _getBrandFromInstance(instance),
         'model': 'N/A',
         'lastCheckedOutByKpk': instance.lastCheckedOutByKpk,
-        'hasBeenCheckedIn': instance.hasBeenCheckedIn ?? true,
+        'hasBeenCheckedIn': instance.hasBeenCheckedIn,
         'checkedOutByName': instance.checkedOutByName,
         'lastCheckedOutDate': _formatDate(instance.lastCheckedOutDate),
         'repairRequestStatus': instance.repairRequestStatus,
@@ -143,17 +180,14 @@ class _InstancesPageState extends State<InstancesPage>
   }
 
   String _getAssetTypeFromInstance(AssetInstances instance) {
-    if (instance.asset != null) {
-      if (instance.asset is Map) {
-        final categoryId = (instance.asset as Map)['AssetCategoryId'];
-        return categoryId == 1 ? 'Consumable' : 'Reusable';
-      } else if (instance.asset is AssetsModel) {
-        return (instance.asset as AssetsModel).assetCategoryId == 1
-            ? 'Consumable'
-            : 'Reusable';
-      }
+    switch (widget.assetCategoryId) {
+      case 1:
+        return 'Consumable';
+      case 2:
+        return 'Reusable';
+      default:
+        return 'Unknown';
     }
-    return 'Reusable';
   }
 
   String _extractPlantFromLocation(String location) {
@@ -323,6 +357,7 @@ class _InstancesPageState extends State<InstancesPage>
                             arguments: {
                               'assetId': assetId,
                               'assetName': assetName,
+                              'assetCategoryId': widget.assetCategoryId,
                             },
                           );
                         },
@@ -745,35 +780,37 @@ class _InstancesPageState extends State<InstancesPage>
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      statusIcon,
-                                      size: 12,
-                                      color: statusColor,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      status,
-                                      style: AppTextStyles.bodySmall.copyWith(
+                              if (instance['type'] != 'Consumable') ...[
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        statusIcon,
+                                        size: 12,
                                         color: statusColor,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 10,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: 4),
+                                      Text(
+                                        status,
+                                        style: AppTextStyles.bodySmall.copyWith(
+                                          color: statusColor,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ],
                           ),
                           SizedBox(height: 4),
@@ -820,8 +857,32 @@ class _InstancesPageState extends State<InstancesPage>
                 ),
 
                 // Additional Info Row
-                if (instance['serialNumber'] != null ||
-                    instance['condition'] != null) ...[
+                if (instance['type'] == 'Consumable') ...[
+                  SizedBox(height: 12),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Quantity: ${instance['qty'] ?? 'N/A'}',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else if ((instance['serialNumber'] != null || instance['condition'] != null)) ...[
                   SizedBox(height: 12),
                   Container(
                     padding: EdgeInsets.all(8),

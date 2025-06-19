@@ -10,6 +10,15 @@ class AuthLoginEvent extends AuthEvent {
   AuthLoginEvent({required this.email, required this.password});
 }
 
+class AuthLogoutRequested extends AuthEvent {
+  final BuildContext context;
+
+  AuthLogoutRequested({required this.context});
+
+  @override
+  List<Object?> get props => [context];
+}
+
 class AuthRegisterEvent extends AuthEvent {
   final String email;
   final String password;
@@ -24,10 +33,4 @@ class AuthRegisterEvent extends AuthEvent {
     required this.confirmPassword,
     required this.kpk,
   });
-}
-
-class AuthLogoutRequested extends AuthEvent {
-  final String message;
-
-  AuthLogoutRequested({this.message = "Logout"});
 }

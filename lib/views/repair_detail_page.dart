@@ -380,8 +380,8 @@ class _RepairDetailPageState extends State<RepairDetailPage> {
                   SizedBox(height: 16),
 
                   // Image Section (if available)
-                  if (widget.repairRequest.repairReqImage != null ||
-                      widget.repairRequest.repairImageBase64 != null)
+                  if (widget.repairRequest.hasBase64 ||
+                      widget.repairRequest.imageUrl != null)
                     _buildImageSection(),
 
                   // Details Card
@@ -492,31 +492,26 @@ class _RepairDetailPageState extends State<RepairDetailPage> {
   }
 
   Widget _buildRepairImage() {
-    // Handle base64 image
-    if (widget.repairRequest.repairImageBase64 != null &&
-        widget.repairRequest.repairImageBase64.toString().isNotEmpty) {
+    // 1) Prioritaskan Base64 jika memang ada
+    if (widget.repairRequest.hasBase64) {
       try {
-        final bytes = base64Decode(
-          widget.repairRequest.repairImageBase64.toString(),
-        );
+        final bytes = base64Decode(widget.repairRequest.repairImageBase64.toString());
         return Image.memory(
           bytes,
           fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              _buildImagePlaceholder(),
+          errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
         );
       } catch (e) {
-        return _buildImagePlaceholder();
+        // Jika decode gagal, lanjut ke URL
       }
     }
 
-    // Handle URL image
-    if (widget.repairRequest.repairReqImage != null &&
-        widget.repairRequest.repairReqImage.toString().isNotEmpty) {
+    // 2) Kalau tidak ada Base64 atau decode gagal, pakai URL
+    final imageUrl = widget.repairRequest.imageUrl;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
       return Image.network(
-        widget.repairRequest.repairReqImage.toString(),
+        imageUrl,
         fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
         loadingBuilder: (context, child, loadingProgress) {
           if (loadingProgress == null) return child;
           return Center(
@@ -524,14 +519,16 @@ class _RepairDetailPageState extends State<RepairDetailPage> {
               color: AppColors.primary,
               value: loadingProgress.expectedTotalBytes != null
                   ? loadingProgress.cumulativeBytesLoaded /
-                        loadingProgress.expectedTotalBytes!
+                  loadingProgress.expectedTotalBytes!
                   : null,
             ),
           );
         },
+        errorBuilder: (context, error, stackTrace) => _buildImagePlaceholder(),
       );
     }
 
+    // 3) Kalau tidak ada Base64 dan tidak ada URL → placeholder
     return _buildImagePlaceholder();
   }
 

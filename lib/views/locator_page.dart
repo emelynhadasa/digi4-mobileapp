@@ -6,9 +6,18 @@ import 'package:digi4_mobile/styles/shared_typography.dart';
 import 'package:digi4_mobile/views/cabinets_page.dart';
 import 'package:digi4_mobile/views/locator_edit_page.dart';
 import 'package:flutter/material.dart';
+import 'package:digi4_mobile/main.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-class LocatorPage extends StatelessWidget {
+class LocatorPage extends StatefulWidget {
+  const LocatorPage({super.key});
+
+  @override
+  State<LocatorPage> createState() => _LocatorPageState();
+}
+
+class _LocatorPageState extends State<LocatorPage> with RouteAware {
+  late LocatorBloc _locatorBloc;
   // Data dummy sebagai fallback jika API gagal
   final List<Map<String, dynamic>> fallbackPlants = [
     // {
@@ -23,7 +32,32 @@ class LocatorPage extends StatelessWidget {
     // },
   ];
 
-  LocatorPage({super.key});
+  @override
+  void initState() {
+    super.initState();
+    _locatorBloc = LocatorBloc()..add(LoadPlants());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe ke observer
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
+  void dispose() {
+    // Unsubscribe saat halaman dihapus
+    routeObserver.unsubscribe(this);
+    _locatorBloc.close();
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Halaman muncul kembali dari push (misalnya setelah nambah plant)
+    _locatorBloc.add(LoadPlants());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,10 +87,7 @@ class LocatorPage extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.buttonPrimary,
                         foregroundColor: AppColors.buttonText,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -75,9 +106,9 @@ class LocatorPage extends StatelessWidget {
                       },
                       child: Text(
                         'Add New Plant',
-                        style: AppTextStyles.bodyLarge.copyWith(
+                        style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.buttonText,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -99,6 +130,10 @@ class LocatorPage extends StatelessWidget {
                     }
                     // Success state - convert Plants to Map format
                     else if (state is PlantsLoadedSuccess) {
+                      print('plants in state, after plantsloadedsuccess: ${state.plants.length}');
+                      for (var plant in state.plants) {
+                        print('Plant, after plantsloadedsuccess: ${plant.plantId}, ${plant.plantName}, ${plant.address}');
+                      }
                       final plantsData = state.plants
                           .map(
                             (plant) => {
@@ -111,6 +146,7 @@ class LocatorPage extends StatelessWidget {
                             },
                           )
                           .toList();
+                      print('plantsData: $plantsData');
 
                       return _buildPlantsList(plantsData);
                     }
@@ -232,12 +268,6 @@ class LocatorPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  '${plant['total_cabinets'] ?? 0} Cabinets',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -323,72 +353,11 @@ class LocatorPage extends StatelessWidget {
                   },
                 ),
                 const SizedBox(width: 8),
-
-                // Delete Button - TAMBAHAN BARU
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  icon: Icon(Icons.delete_outline, size: 18),
-                  label: Text('Delete'),
-                  onPressed: () {
-                    _showDeleteConfirmation(context, plant);
-                  },
-                ),
               ],
             ),
           ],
         ),
       ),
-    );
-  }
-
-  void _showDeleteConfirmation(
-    BuildContext context,
-    Map<String, dynamic> plant,
-  ) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          title: Text('Delete Plant'),
-          content: Text('Are you sure you want to delete "${plant['name']}"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // TODO: Implement delete functionality
-                print('Deleting plant: ${plant['name']}');
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Plant "${plant['name']}" deleted'),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-              },
-              child: Text('Delete'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -450,13 +419,11 @@ class _LocatorPageWithRefreshState extends State<LocatorPageWithRefresh> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.buttonPrimary,
                         foregroundColor: AppColors.buttonText,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        elevation: 2,
                       ),
                       onPressed: () async {
                         // Navigate ke halaman create plant
@@ -472,9 +439,9 @@ class _LocatorPageWithRefreshState extends State<LocatorPageWithRefresh> {
                       },
                       child: Text(
                         'Add New Plant',
-                        style: AppTextStyles.bodyLarge.copyWith(
+                        style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.buttonText,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),

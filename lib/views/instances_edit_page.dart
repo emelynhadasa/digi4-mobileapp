@@ -39,10 +39,7 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
   List<Shelf> _availableShelves = [];
 
   final List<Map<String, dynamic>> _conditionOptions = [
-    {'value': 'New', 'label': 'New'},
     {'value': 'Good', 'label': 'Good'},
-    {'value': 'Fair', 'label': 'Fair'},
-    {'value': 'Poor', 'label': 'Poor'},
     {'value': 'Damaged', 'label': 'Damaged'},
   ];
 

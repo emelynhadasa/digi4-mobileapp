@@ -46,25 +46,28 @@ class AssetsModel {
 }
 
 class AssetInstances {
-  int instanceId;
-  int assetId;
-  int qrCodeId;
-  String encodedData;
-  dynamic qrCodeImageBase64;
-  dynamic shelfId;
-  String location;
-  String condition;
-  String status;
-  DateTime warrantyExpiryDate;
-  int lifetime;
-  String serialNumber;
-  dynamic lastCheckedOutByKpk;
-  bool hasBeenCheckedIn;
-  dynamic checkedOutByName;
-  DateTime lastCheckedOutDate;
-  dynamic repairRequestStatus;
-  dynamic repairRequestedByName;
-  dynamic asset;
+  final int instanceId;
+  final int assetId;
+  final int qrCodeId;
+  final String encodedData;
+  final String qrCodeImageBase64;  // kita ubah menjadi String (fallback '')
+  final int? shelfId;              // boleh null
+  final String location;
+  final String condition;          // fallback ''
+  final String status;             // fallback ''
+  final DateTime? warrantyExpiryDate; // bisa null
+  final int? lifetime;             // bisa null
+  final String serialNumber;       // fallback ''
+  final String? lastCheckedOutByKpk; // boleh null
+  final bool hasBeenCheckedIn;     // fallback false
+  final String? checkedOutByName;  // boleh null
+  final DateTime? lastCheckedOutDate; // bisa null
+  final String? repairRequestStatus;  // boleh null
+  final String? repairRequestedByName; // boleh null
+  final dynamic asset;             // tetap dynamic, sesuai kebutuhan
+  final int? quantity;
+  final int? restockThreshold;
+  final int? shelfLife;
 
   AssetInstances({
     required this.instanceId,
@@ -72,45 +75,81 @@ class AssetInstances {
     required this.qrCodeId,
     required this.encodedData,
     required this.qrCodeImageBase64,
-    required this.shelfId,
+    this.shelfId,
     required this.location,
     required this.condition,
     required this.status,
-    required this.warrantyExpiryDate,
-    required this.lifetime,
+    this.warrantyExpiryDate,
+    this.lifetime,
     required this.serialNumber,
-    required this.lastCheckedOutByKpk,
+    this.lastCheckedOutByKpk,
     required this.hasBeenCheckedIn,
-    required this.checkedOutByName,
-    required this.lastCheckedOutDate,
-    required this.repairRequestStatus,
-    required this.repairRequestedByName,
-    required this.asset,
+    this.checkedOutByName,
+    this.lastCheckedOutDate,
+    this.repairRequestStatus,
+    this.repairRequestedByName,
+    this.asset,
+    this.quantity,
+    this.restockThreshold,
+    this.shelfLife,
   });
 
   factory AssetInstances.fromJson(Map<String, dynamic> json) {
+    // Debug-print untuk memastikan isi JSON
+    print('[DEBUG AssetInstances.fromJson] json = $json');
+
+    // Parse DateTime jika field tidak null dan valid
+    DateTime? parseDate(String? value) {
+      if (value == null || value.isEmpty) return null;
+      try {
+        return DateTime.parse(value);
+      } catch (_) {
+        return null;
+      }
+    }
+
     return AssetInstances(
-      instanceId: json['InstanceId'],
-      assetId: json['AssetId'],
-      qrCodeId: json['QrCodeId'],
-      encodedData: json['EncodedData'],
-      qrCodeImageBase64: json['QrCodeImageBase64'],
-      shelfId: json['ShelfId'],
-      location: json['Location'],
-      condition: json['Condition'],
-      status: json['Status'],
-      warrantyExpiryDate: DateTime.parse(json['WarrantyExpiryDate']),
-      lifetime: json['Lifetime'],
-      serialNumber: json['SerialNumber'],
-      lastCheckedOutByKpk: json['LastCheckedOutByKpk'],
-      hasBeenCheckedIn: json['HasBeenCheckedIn'],
-      checkedOutByName: json['CheckedOutByName'],
-      lastCheckedOutDate: DateTime.parse(json['LastCheckedOutDate']),
-      repairRequestStatus: json['RepairRequestStatus'],
-      repairRequestedByName: json['RepairRequestedByName'],
-      asset: json['Asset'], // Assuming asset is a nested object
+      instanceId: json['InstanceId'] as int? ?? 0,
+      assetId: json['AssetId'] as int? ?? 0,
+      qrCodeId: json['QrCodeId'] as int? ?? 0,
+      encodedData: (json['EncodedData'] as String?) ?? '',
+      qrCodeImageBase64: (json['QrCodeImageBase64'] as String?) ?? '',
+      shelfId: json['ShelfId'] as int?, // tetap null jika JSON-nya null
+      location: (json['Location'] as String?) ?? '',
+      condition: (json['Condition'] as String?) ?? '',
+      status: (json['Status'] as String?) ?? '',
+      warrantyExpiryDate: parseDate(json['WarrantyExpiryDate'] as String?),
+      lifetime: json['Lifetime'] as int?,
+      serialNumber: (json['SerialNumber'] as String?) ?? '',
+      lastCheckedOutByKpk: (json['LastCheckedOutByKpk'] as String?),
+      hasBeenCheckedIn: json['HasBeenCheckedIn'] as bool? ?? false,
+      checkedOutByName: (json['CheckedOutByName'] as String?),
+      lastCheckedOutDate: parseDate(json['LastCheckedOutDate'] as String?),
+      repairRequestStatus: (json['RepairRequestStatus'] as String?),
+      repairRequestedByName: (json['RepairRequestedByName'] as String?),
+      asset: json['Asset'],
+      quantity: json['Quantity'] as int?,
+      restockThreshold: json['RestockThreshold'] as int?,
+      shelfLife: json['ShelfLife'] as int?,
     );
   }
+}
+
+// to pass from instance detail page to repair request
+class SimpleAssetInstanceModel {
+  final int assetId;
+  final String assetName;
+  final int instanceId;
+  final int qrCodeId;
+  final String condition;
+
+  SimpleAssetInstanceModel({
+    required this.assetId,
+    required this.assetName,
+    required this.instanceId,
+    required this.qrCodeId,
+    required this.condition,
+  });
 }
 
 class BulkResponse {

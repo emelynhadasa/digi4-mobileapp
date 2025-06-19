@@ -1,6 +1,7 @@
 class DashboardModel {
   String userName;
   int roleId;
+  String? image;
   List<dynamic> lowStock;
   List<dynamic> expiringWarranties;
   int pendingPurchaseCount;
@@ -14,6 +15,7 @@ class DashboardModel {
   DashboardModel({
     required this.userName,
     required this.roleId,
+    this.image,
     required this.lowStock,
     required this.expiringWarranties,
     required this.pendingPurchaseCount,
@@ -34,6 +36,12 @@ class DashboardModel {
     return DashboardModel(
       userName: json['UserName'] ?? 'User',
       roleId: json['RoleId'] ?? 0,
+      image: (json['Image'] is String)
+          ? json['Image']
+          : (() {
+        print('⚠️ Image field bukan string: ${json['Image']}');
+        return null;
+      })(),
       lowStock: json['LowStock'] ?? [],
       expiringWarranties: json['ExpiringWarranties'] ?? [],
       pendingPurchaseCount: json['PendingPurchaseCount'] ?? 0,

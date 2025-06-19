@@ -109,6 +109,8 @@ class AppRoutes {
             cabinetId: args['cabinetId'] ?? 0,
             cabinetName: args['name'] ?? '',
             cabinetType: args['type'] ?? '',
+            cabinetImage: args['cabinetImage'],
+            cabinetImageBase64: args['cabinetImageBase64'] ?? '',
           );
 
           return CabinetEditPage(
@@ -122,6 +124,8 @@ class AppRoutes {
               cabinetId: 0,
               cabinetName: 'OpenCabinet=65',
               cabinetType: 'OpenCabinet',
+              cabinetImage: null,           // fallback
+              cabinetImageBase64: '',       // fallback
             ),
             plantId: '0',
           );

@@ -100,7 +100,7 @@ class _LocatorAddPageState extends State<LocatorAddPage> {
           elevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: AppColors.textPrimary),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, true),
           ),
           title: Text(
             'Add New Plant',

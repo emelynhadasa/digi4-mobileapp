@@ -31,6 +31,7 @@ class _InstanceCreatePageState extends State<InstanceCreatePage> {
   DateTime? _warrantyExpiryDate;
   String? assetId;
   String? assetName;
+  int? _assetCategoryId;
 
   // Available options from API
   List<Plants> _availablePlants = [];
@@ -38,10 +39,7 @@ class _InstanceCreatePageState extends State<InstanceCreatePage> {
   List<Shelf> _availableShelves = [];
 
   final List<Map<String, dynamic>> _conditionOptions = [
-    {'value': 'New', 'label': 'New'},
     {'value': 'Good', 'label': 'Good'},
-    {'value': 'Fair', 'label': 'Fair'},
-    {'value': 'Poor', 'label': 'Poor'},
     {'value': 'Damaged', 'label': 'Damaged'},
   ];
 
@@ -59,6 +57,7 @@ class _InstanceCreatePageState extends State<InstanceCreatePage> {
         setState(() {
           assetId = args['assetId']?.toString();
           assetName = args['assetName']?.toString();
+          _assetCategoryId = args['assetCategoryId'];
         });
       }
       print('=== CREATE INSTANCE PAGE ===');
@@ -145,7 +144,7 @@ class _InstanceCreatePageState extends State<InstanceCreatePage> {
         return;
       }
 
-      if (_warrantyExpiryDate == null) {
+      if (_assetCategoryId == 2 && _warrantyExpiryDate == null) {
         _showErrorSnackBar('Please select warranty expiry date');
         return;
       }
@@ -160,7 +159,8 @@ class _InstanceCreatePageState extends State<InstanceCreatePage> {
         'RestockThreshold': int.tryParse(_restockThresholdController.text) ?? 1,
         'ShelfLife': int.tryParse(_shelfLifeController.text) ?? 365,
         'Condition': _selectedCondition ?? 'Good',
-        'WarrantyExpiryDate': _warrantyExpiryDate!.toUtc().toIso8601String(),
+        if (_assetCategoryId == 2 && _warrantyExpiryDate != null)
+          'WarrantyExpiryDate': _warrantyExpiryDate!.toUtc().toIso8601String(),
         'Lifetime': _lifetimeController.text.trim(),
         'SerialNumber': _serialNumberController.text.trim(),
       };
@@ -374,113 +374,117 @@ class _InstanceCreatePageState extends State<InstanceCreatePage> {
                         ),
                         SizedBox(height: 16),
 
-                        // Serial Number Field
-                        _buildTextFormField(
-                          controller: _serialNumberController,
-                          labelText: 'Serial Number',
-                          hintText: 'e.g., SN123456789',
-                          validator: (value) => value!.isEmpty
-                              ? 'Please enter serial number'
-                              : null,
-                        ),
-                        SizedBox(height: 20),
+                        if (_assetCategoryId == 2) ...[
+                          // Serial Number
+                          _buildTextFormField(
+                            controller: _serialNumberController,
+                            labelText: 'Serial Number',
+                            hintText: 'e.g., SN123456789',
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter serial number';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 20),
 
-                        // Condition Dropdown
-                        _buildStringDropdownFormField(
-                          value: _selectedCondition,
-                          items: _conditionOptions,
-                          labelText: 'Condition',
-                          hintText: 'Select condition',
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedCondition = value;
-                            });
-                          },
-                          validator: (value) =>
-                              value == null ? 'Please select condition' : null,
-                        ),
-                        SizedBox(height: 20),
+                          // Condition Dropdown
+                          _buildStringDropdownFormField(
+                            value: _selectedCondition,
+                            items: _conditionOptions,
+                            labelText: 'Condition',
+                            hintText: 'Select condition',
+                            onChanged: (v) => setState(() => _selectedCondition = v),
+                            validator: (value) =>
+                            value == null ? 'Please select condition' : null,
+                          ),
+                          SizedBox(height: 20),
 
-                        // Quantity and Restock Threshold Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _quantityController,
-                                labelText: 'Quantity',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter quantity'
-                                    : null,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _restockThresholdController,
-                                labelText: 'Restock Threshold',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter restock threshold'
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
+                          // Warranty Expiry Date
+                          _buildDatePickerField(
+                            labelText: 'Warranty Expiry Date',
+                            selectedDate: _warrantyExpiryDate,
+                            onTap: () => _selectWarrantyDate(context),
+                            validator: (_) {
+                              if (_warrantyExpiryDate == null) {
+                                return 'Please select warranty expiry date';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 20),
 
-                        // Shelf Life and Lifetime Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _shelfLifeController,
-                                labelText: 'Shelf Life (Days)',
-                                hintText: 'e.g., 365',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter shelf life'
-                                    : null,
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _lifetimeController,
-                                labelText: 'Lifetime (Days)',
-                                hintText: 'e.g., 730',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter lifetime'
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
+                          // Lifetime
+                          _buildTextFormField(
+                            controller: _lifetimeController,
+                            labelText: 'Lifetime (Days)',
+                            hintText: 'e.g., 730',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter lifetime';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 20),
+                        ],
 
-                        // Warranty Expiry Date
-                        _buildDatePickerField(
-                          labelText: 'Warranty Expiry Date',
-                          selectedDate: _warrantyExpiryDate,
-                          onTap: () => _selectWarrantyDate(context),
-                          validator: (value) => _warrantyExpiryDate == null
-                              ? 'Please select warranty expiry date'
-                              : null,
-                        ),
-                        SizedBox(height: 40),
+                        if (_assetCategoryId == 1) ...[
+                          // Quantity & RestockThreshold
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextFormField(
+                                  controller: _quantityController,
+                                  labelText: 'Quantity',
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter quantity';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTextFormField(
+                                  controller: _restockThresholdController,
+                                  labelText: 'Restock Threshold',
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter restock threshold';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20),
+
+                          // Shelf Life
+                          _buildTextFormField(
+                            controller: _shelfLifeController,
+                            labelText: 'Shelf Life (Days)',
+                            hintText: 'e.g., 365',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter shelf life';
+                              }
+                              return null;
+                            },
+                          ),
+                          SizedBox(height: 20),
+                        ],
 
                         // Create Button
                         SizedBox(

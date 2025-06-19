@@ -56,7 +56,11 @@ class _LoginPageState extends State<LoginPage> {
             listener: (context, state) {
               if (state is LoginSuccess) {
                 // Navigate to home or dashboard
-                Navigator.pushReplacementNamed(context, AppRoutes.main);
+                //Navigator.pushReplacementNamed(context, AppRoutes.main);
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  AppRoutes.main,
+                      (Route<dynamic> route) => false,
+                );
 
                 // Optional: Show success message
                 ScaffoldMessenger.of(context).showSnackBar(

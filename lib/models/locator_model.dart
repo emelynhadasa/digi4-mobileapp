@@ -1,3 +1,5 @@
+import 'package:digi4_mobile/config/constant.dart';
+
 class Plants {
   int plantId;
   String plantName;
@@ -22,19 +24,40 @@ class Cabinet {
   int cabinetId;
   String cabinetName;
   String cabinetType;
+  dynamic cabinetImage;
+  dynamic cabinetImageBase64;
 
   Cabinet({
     required this.cabinetId,
     required this.cabinetName,
     required this.cabinetType,
+    this.cabinetImage,
+    this.cabinetImageBase64,
   });
 
   factory Cabinet.fromJson(Map<String, dynamic> json) {
+    final String? image = json['CabinetImage'];
     return Cabinet(
       cabinetId: json['CabinetId'],
       cabinetName: json['CabinetName'],
       cabinetType: json['CabinetType'],
+      cabinetImage: image != null ? '${Constant.baseAddressUrl}$image' : null,
+      cabinetImageBase64:  json['CabinetImageBase64'] ?? '',
     );
+  }
+
+  /// Getter yang mengembalikan URL penuh ke folder RequestImg kalau ada file‐name
+  String? get imageUrl {
+    if (cabinetImage != null && cabinetImage.toString().isNotEmpty) {
+      return '${Constant.baseAddressUrl}${cabinetImage.toString()}';
+    }
+    return null;
+  }
+
+  /// boolean untuk memeriksa apakah ada data base64 yang dapat ditampilkan
+  bool get hasBase64 {
+    final raw = cabinetImageBase64;
+    return raw != null && raw.toString().isNotEmpty;
   }
 }
 

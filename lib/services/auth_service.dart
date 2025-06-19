@@ -67,4 +67,23 @@ class AuthService {
       throw Exception('Failed to register : $e');
     }
   }
+
+  Future<void> logout() async {
+    final token = await Token.getToken();
+    final headers = {
+      ...Constant.header,
+      'Authorization': 'Bearer $token',
+    };
+
+    final response = await http.get(
+      Uri.parse('${Constant.baseUrl}/logoff'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Logout failed: ${response.statusCode}');
+    }
+    // Kalau perlu, hapus token dari storage setelah logout berhasil
+    await Token.clearToken();
+  }
 }

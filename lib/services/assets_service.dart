@@ -156,7 +156,7 @@ class AssetsService {
       // Dapatkan token
       String? token = await Token.getToken();
 
-      Constant.header = {
+      final headers = <String, String>{
         ...Constant.header,
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -165,7 +165,8 @@ class AssetsService {
       // Kirim data sebagai application/json
       final response = await http.put(
         Uri.parse('${Constant.baseUrl}/assets/$assetId'),
-        headers: Constant.header,
+        //headers: Constant.header,
+        headers: headers,
         body: jsonEncode(assetData),
       );
 
@@ -309,7 +310,7 @@ class AssetsService {
       };
 
       final response = await http.post(
-        Uri.parse(Constant.assetInstaceUrl),
+        Uri.parse(Constant.assetInstanceUrl),
         headers: headers,
         body: jsonEncode(instanceData),
       );
@@ -341,7 +342,7 @@ class AssetsService {
       };
 
       final response = await http.put(
-        Uri.parse('${Constant.assetInstaceUrl}/$instanceId'),
+        Uri.parse('${Constant.assetInstanceUrl}/$instanceId'),
         headers: headers,
         body: jsonEncode(instanceData),
       );
@@ -366,7 +367,7 @@ class AssetsService {
       final headers = {...Constant.header, 'Authorization': 'Bearer $token'};
 
       final response = await http.delete(
-        Uri.parse('${Constant.assetInstaceUrl}/$instanceId'),
+        Uri.parse('${Constant.assetInstanceUrl}/$instanceId'),
         headers: headers,
       );
 
@@ -394,7 +395,7 @@ class AssetsService {
       };
 
       final response = await http.post(
-        Uri.parse('${Constant.assetInstaceUrl}/$id/checkout'),
+        Uri.parse('${Constant.assetInstanceUrl}/$id/checkout'),
         headers: headers,
         body: jsonEncode(jsonBody),
       );
@@ -423,7 +424,7 @@ class AssetsService {
       };
 
       final response = await http.post(
-        Uri.parse('${Constant.assetInstaceUrl}/$id/checkin'),
+        Uri.parse('${Constant.assetInstanceUrl}/$id/checkin'),
         headers: headers,
         body: jsonEncode(jsonBody),
       );
@@ -452,7 +453,7 @@ class AssetsService {
       };
 
       final response = await http.post(
-        Uri.parse('${Constant.assetInstaceUrl}/$instanceId/mark-found'),
+        Uri.parse('${Constant.assetInstanceUrl}/$instanceId/mark-found'),
         headers: headers,
       );
 

@@ -3,8 +3,10 @@ import 'package:digi4_mobile/models/dashboard_model.dart';
 import 'package:digi4_mobile/styles/color.dart';
 import 'package:digi4_mobile/styles/shared_typography.dart';
 import 'package:flutter/material.dart';
+import 'package:digi4_mobile/blocs/auth/auth_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,28 +16,41 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  bool _hasLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    // Load dashboard data when page is initialized
-    context.read<DashboardBloc>().add(DashboardRequested());
+    if (!_hasLoaded) {
+      _hasLoaded = true;
+      context.read<DashboardBloc>().add(DashboardRequested());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardBloc, DashboardState>(
-      builder: (context, state) {
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          body: RefreshIndicator(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthInitial) {
+          // Navigasi ke login setelah logout berhasil
+          Navigator.of(context).pushReplacementNamed('/login');
+        } else if (state is LoginFailure) {
+          // Tampilkan pesan error jika logout gagal
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        }
+      },
+      child: BlocBuilder<DashboardBloc, DashboardState>(
+        builder: (context, state) {
+          return RefreshIndicator(
             onRefresh: () async {
-              // Reload dashboard data on pull-to-refresh
               context.read<DashboardBloc>().add(DashboardReloadRequested());
             },
             child: SafeArea(child: _buildContent(context, state)),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 
@@ -120,22 +135,22 @@ class _HomePageState extends State<HomePage> {
     // Convert dashboard data to format expected by the existing UI components
     List<Map<String, dynamic>> cards = [
       {
-        'icon': Icons.assessment,
+        'svgPath': 'assets/asset.svg',
         'count': '${dashboard.totalAssets}',
         'label': 'Assets',
       },
       {
-        'icon': Icons.storage,
+        'svgPath': 'assets/instance.svg',
         'count': '${dashboard.totalInstances}',
         'label': 'Instances',
       },
       {
-        'icon': Icons.build,
+        'svgPath': 'assets/repair.svg',
         'count': '${dashboard.openRepairCount}',
         'label': 'Repairs in Progress',
       },
       {
-        'icon': Icons.shopping_cart,
+        'svgPath': 'assets/purchase.svg',
         'count': '${dashboard.ongoingPurchaseCount}',
         'label': 'Purchases in Progress',
       },
@@ -229,10 +244,18 @@ class _HomePageState extends State<HomePage> {
                     Text(dashboard.userName, style: AppTextStyles.h2),
                   ],
                 ),
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 30, color: AppColors.primary),
+                GestureDetector(
+                  onTap: () {
+                    print("Logout event fired");
+                    context.read<AuthBloc>().add(
+                      AuthLogoutRequested(context: context),
+                    );
+                  },
+                  child: SvgPicture.asset(
+                    'assets/logout.svg',
+                    height: 35, // Atur sesuai kebutuhan
+                    width: 35,
+                  ),
                 ),
               ],
             ),
@@ -263,87 +286,131 @@ class _HomePageState extends State<HomePage> {
           ),
 
           // Low Stock Section (if available)
+          // ===== Low Stock Items Block =====
           if (dashboard.lowStock.isNotEmpty)
+            const SizedBox(height: 15),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Low Stock Items'),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.05), // abu-abu sheer untuk blok
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(
+                      'Low Stock Items',
+                      'assets/low-stock.svg',
+                      bgColor: Colors.transparent,     // karena blok luar sudah punya latar
+                      textColor: Colors.black87,
+                      topPadding: 0,
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: AppColors.error,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '${dashboard.lowStock
-                                .length} items are running low on stock',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.error,
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.warning_amber_rounded, color: AppColors.error),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '${dashboard.lowStock.length} items are running low on stock',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.error,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-          // Expiring Warranties Section (if available)
+          // ===== Expiring Warranties Block =====
           if (dashboard.expiringWarranties.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle('Expiring Warranties'),
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.05), // abu-abu sheer untuk blok
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(
+                      'Expiring Warranties',
+                      'assets/warranty-expiring.svg',
+                      bgColor: Colors.transparent,
+                      textColor: Colors.black87,
+                      topPadding: 0,
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.access_time, color: AppColors.warning),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            '${dashboard.expiringWarranties
-                                .length} warranties are expiring soon',
-                            style: AppTextStyles.bodyMedium.copyWith(
-                              color: AppColors.warning,
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.access_time, color: AppColors.warning),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '${dashboard.expiringWarranties.length} warranties are expiring soon',
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                color: AppColors.warning,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-          // Recent Transactions
+          // ===== Recent Transactions (Consumable + Reusable) =====
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 14),
-                _buildSectionTitle('Recent Consumable Transaction'),
+
+                // Consumable Transactions Block
+                _buildSectionTitle(
+                  'Recent Consumable Transactions',
+                  'assets/transaction.svg',
+                  bgColor: Colors.grey.withOpacity(0.1),
+                  textColor: Colors.black87,
+                  topPadding: 0,
+                ),
                 ..._buildConsumableList(context, consumables),
+
                 const SizedBox(height: 14),
-                _buildSectionTitle('Recent Reusable Transaction',),
+
+                // Reusable Transactions Block
+                _buildSectionTitle(
+                  'Recent Reusable Transactions',
+                  'assets/transaction.svg',
+                  bgColor: Colors.grey.withOpacity(0.1),
+                  textColor: Colors.black87,
+                  topPadding: 0,
+                ),
                 ..._buildReusableList(context, reusables),
               ],
             ),
@@ -434,35 +501,56 @@ class _HomePageState extends State<HomePage> {
   Widget _buildCard(Map<String, dynamic> card) {
     return Expanded(
       child: Container(
-        height: 130,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), // ⬅️ Biar teks/ikon gak mentok
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        height: 140, // ⬆️ Tinggikan box
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, 4),
             ),
           ],
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly, // ⬅️ Biar antar elemen lebih merata
           children: [
-            Icon(card['icon'], size: 34, color: AppColors.primary),
-            const SizedBox(height: 12),
-            Text(card['count'], style: AppTextStyles.h3),
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(
-                card['label'],
-                style: AppTextStyles.bodyMedium,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+            // Ikon SVG atau biasa
+            if (card.containsKey('svgPath'))
+              SvgPicture.asset(
+                card['svgPath'],
+                height: 40,  // ⬆️ Sedikit lebih besar
+                width: 40,
+              )
+            else
+              Icon(
+                card['icon'],
+                size: 40,
+                color: AppColors.primary,
               ),
+
+            // Jumlah
+            Text(
+              card['count'],
+              style: AppTextStyles.h3.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+
+            // Label
+            Text(
+              card['label'],
+              style: AppTextStyles.bodyMedium.copyWith(
+                color: Colors.grey[700],
+                height: 1.2,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -470,10 +558,42 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(
+      String title,
+      String iconPath, {
+        Color bgColor = const Color(0xFFE0E0E0),  // default abu‐abu sheer
+        Color iconColor = Colors.black54,         // default warna ikon
+        Color textColor = Colors.black87,         // default warna teks
+        double topPadding = 0,                    // ⬅️ kontrol jarak atas
+      }) {
     return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 12),
-      child: Text(title, style: AppTextStyles.h4),
+      padding: EdgeInsets.only(top: topPadding, bottom: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            SvgPicture.asset(
+              iconPath,
+              height: 26,
+              width: 26,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: AppTextStyles.h4.copyWith(
+                color: textColor,
+                height: 1.2,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

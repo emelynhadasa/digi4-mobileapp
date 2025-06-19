@@ -70,11 +70,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
               backgroundColor: AppColors.success,
             ),
           );
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.main,
-            (route) => false,
-          );
+          Navigator.of(context).pop();
         }
 
         // Handle delete failure
@@ -436,6 +432,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                         () {
                       final id = widget.assetId ?? (widget.asset?.assetId);
                       final name = asset['name'] ?? asset['assetName'] ?? 'Unknown Asset';
+                      final categoryId = asset['assetCategoryId'] ?? widget.asset?.assetCategoryId ?? 0;
 
                       if (id != null) {
                         Navigator.push(
@@ -446,6 +443,7 @@ class _AssetDetailPageState extends State<AssetDetailPage> {
                               child: InstancesPage(
                                 assetId: id.toString(),
                                 assetName: name,
+                                assetCategoryId: categoryId,
                               ),
                             ),
                           ),

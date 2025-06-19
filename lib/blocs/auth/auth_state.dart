@@ -24,6 +24,8 @@ class LoginFailure extends AuthState {
   LoginFailure({this.message = "Login Failed"});
 }
 
+class AuthLoggedOut extends AuthState {}
+
 class RegisterSuccess extends AuthState {
   final String message;
 

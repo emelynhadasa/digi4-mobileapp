@@ -1,5 +1,6 @@
 import 'package:digi4_mobile/blocs/asset/assets_bloc.dart';
 import 'package:digi4_mobile/blocs/repair_request/repair_request_bloc.dart';
+import 'package:digi4_mobile/blocs/instance/instance_logs_bloc.dart';
 import 'package:digi4_mobile/styles/color.dart';
 import 'package:digi4_mobile/styles/shared_typography.dart';
 import 'package:digi4_mobile/views/instances_ask_repair_page.dart';
@@ -9,6 +10,7 @@ import 'package:digi4_mobile/views/instances_edit_page.dart';
 import 'package:digi4_mobile/views/instances_logs_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:digi4_mobile/services/instance_service.dart';
 
 class InstancesDetailPage extends StatefulWidget {
   final Map<String, dynamic> instance;
@@ -212,6 +214,8 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    print("==== INSTANCE MAP MASUK ====");
+    print(widget.instance);
     return BlocListener<AssetsBloc, AssetsState>(
       listener: (context, state) {
         if (state is AssetsUpdatedSuccess ||
@@ -336,15 +340,22 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
   }
 
   Widget _buildDetailView(BuildContext context, Map<String, dynamic> instance) {
+    final typeValue = (instance['type'] ?? instance['Type'] ?? '').toString();
+    final qtyValue = instance['qty'] != null ? int.tryParse(instance['qty']) ?? 0 : 0;
+
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(16, 0, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Status Banner - Show current status prominently
+          if (typeValue == 'Reusable') ...[
           _buildStatusBanner(instance),
           SizedBox(height: 20),
-
+          ] else if (typeValue == 'Consumable') ...[
+          _buildConsumableBanner(qtyValue),
+          SizedBox(height: 20),
+          ],
           // QR Code Section
           Container(
             height: 200,
@@ -408,6 +419,8 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
                   ],
                 ),
                 Divider(height: 24),
+
+                // 1) Baris‐baris yang selalu muncul untuk kedua tipe:
                 _buildDetailRow(
                   'Instance ID',
                   instance['instanceId']?.toString() ??
@@ -426,57 +439,66 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
                 ),
                 _buildDetailRow(
                   'Type',
-                  instance['type'] ?? instance['Type'],
-                ),
-                _buildDetailRow(
-                  'Status',
-                  instance['status'] ?? instance['Status'],
-                ),
-                _buildDetailRow(
-                  'Condition',
-                  instance['condition'] ?? instance['Condition'],
+                   typeValue,
                 ),
                 _buildDetailRow(
                   'Location',
                   instance['location'] ?? instance['Location'],
                 ),
                 _buildDetailRow(
-                  'Plant',
-                  instance['plant'] ?? instance['Plant'],
-                ),
-                _buildDetailRow(
                   'Shelf',
                   instance['shelf'] ?? instance['Shelf'],
                 ),
-                _buildDetailRow(
-                  'Serial Number',
-                  instance['serialNumber'] ?? instance['SerialNumber'],
-                ),
-                _buildDetailRow(
-                  'Warranty Expiry',
-                  instance['warrantyExpiryDate'] ?? instance['WarrantyExpiryDate'],
-                ),
-                if (instance['qty'] != null || instance['Qty'] != null)
+
+                SizedBox(height: 16),
+
+                // 2) Isi berbeda berdasarkan tipe:
+                if (typeValue == 'Consumable') ...[
+                  // Untuk consumable, tampilkan hanya field‐field ini:
                   _buildDetailRow(
                     'Quantity',
                     instance['qty']?.toString() ?? instance['Qty']?.toString(),
                   ),
-                if (instance['restockThreshold'] != null || instance['RestockThreshold'] != null)
                   _buildDetailRow(
                     'Restock Threshold',
                     instance['restockThreshold']?.toString() ??
                         instance['RestockThreshold']?.toString(),
                   ),
-                if (instance['shelfLife'] != null || instance['ShelfLife'] != null)
                   _buildDetailRow(
                     'Shelf Life',
-                    instance['shelfLife']?.toString() ?? instance['ShelfLife']?.toString(),
+                    instance['shelfLife']?.toString() ??
+                        instance['ShelfLife']?.toString(),
                   ),
-              ],
+                ] else if (typeValue == 'Reusable') ...[
+                  // Untuk reusable, tampilkan hanya field‐field ini:
+                  _buildDetailRow(
+                    'Status',
+                    instance['status'] ?? instance['Status'],
+                  ),
+                  _buildDetailRow(
+                    'Condition',
+                    instance['condition'] ?? instance['Condition'],
+                  ),
+                  _buildDetailRow(
+                    'Warranty Expiry',
+                    instance['warrantyExpiryDate'] ??
+                        instance['WarrantyExpiryDate'],
+                  ),
+                  _buildDetailRow(
+                    'Lifetime',
+                    instance['lifetime']?.toString() ??
+                        instance['Lifetime']?.toString(),
+                  ),
+                  _buildDetailRow(
+                    'Serial Number',
+                    instance['serialNumber'] ?? instance['SerialNumber'],
+                  ),
+                ],
+
+              ], // end children Column
             ),
           ),
           SizedBox(height: 24),
-
           // General Action Buttons
           Row(
             children: [
@@ -515,12 +537,15 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
                   'See Logs',
                   AppColors.info,
                   Icons.history_outlined,
-                  () {
+                      () {
+                    // Pastikan instance['instanceId'] sudah ter‐parse jadi int
+                    final id = int.tryParse(instance['instanceId'] ?? '') ?? 0;
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => InstanceLogsPage(
-                          instanceId: instance['instanceId'] ?? instance['InstanceId'],
+                        builder: (context) => BlocProvider(
+                          create: (_) => InstanceLogsBloc(InstanceService()),
+                          child: InstanceLogsPage(instanceId: id),
                         ),
                       ),
                     );
@@ -607,6 +632,39 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConsumableBanner(int qty) {
+    // Ganti teksnya sesuai jumlah qty
+    final bannerColor = AppColors.primary;
+    final bannerIcon = Icons.inventory_2_outlined;
+    final bannerText = qty > 0
+        ? 'There are $qty left in this instance.'
+        : 'No stock left in this instance.';
+
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bannerColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: bannerColor.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Icon(bannerIcon, color: bannerColor, size: 24),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              bannerText,
+              style: AppTextStyles.bodyLarge.copyWith(
+                color: bannerColor,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],
@@ -733,19 +791,19 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
                   Icons.build_outlined,
                   canAskRepair
                       ? () {
-                          print('Ask for Repair tapped');
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => BlocProvider.value(
-                                value: context.read<RepairRequestBloc>(),
-                                child: InstanceAskRepairPage(
-                                  instance: instance,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
+                    print('Ask for Repair tapped');
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BlocProvider.value(
+                          value: context.read<RepairRequestBloc>(),
+                          child: InstanceAskRepairPage(
+                            instance: instance,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
                       : null,
                 ),
               ),

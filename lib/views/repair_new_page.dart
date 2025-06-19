@@ -12,8 +12,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 
 class NewRepairRequestPage extends StatefulWidget {
-  const NewRepairRequestPage({super.key});
-
   @override
   _NewRepairRequestPageState createState() => _NewRepairRequestPageState();
 }
@@ -35,9 +33,9 @@ class _NewRepairRequestPageState extends State<NewRepairRequestPage> {
   bool _isSubmitting = false;
 
   // Map untuk menyimpan asset instances berdasarkan nama asset
-  final Map<String, List<String>> _assetInstances = {};
+  Map<String, List<String>> _assetInstances = {};
   Map<String, int> _assetNameToId = {}; // Map nama asset ke ID
-  final Map<String, int> _instanceNameToId = {}; // Map nama instance ke ID
+  Map<String, int> _instanceNameToId = {}; // Map nama instance ke ID
 
   @override
   void initState() {
@@ -318,268 +316,268 @@ class _NewRepairRequestPageState extends State<NewRepairRequestPage> {
         body: _loadingAssets
             ? Center(child: CircularProgressIndicator(color: AppColors.primary))
             : SingleChildScrollView(
-                padding: EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          padding: EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Asset Dropdown
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Select Asset',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: AppColors.formBorder,
+                        width: 1,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  value: _selectedAsset,
+                  items: _assets.map((AssetsModel asset) {
+                    return DropdownMenuItem<String>(
+                      value: asset.assetName,
+                      child: Text(asset.assetName),
+                    );
+                  }).toList(),
+                  validator: (value) =>
+                  value == null ? 'Please select asset' : null,
+                  onChanged: (value) {
+                    print('Asset selected: $value'); // Debug log
+                    setState(() {
+                      _selectedAsset = value;
+                      _selectedInstance = null;
+                    });
+
+                    // Load instances for selected asset
+                    if (value != null) {
+                      final assetId = _assetNameToId[value];
+                      print('Asset ID for $value: $assetId'); // Debug log
+                      if (assetId != null) {
+                        _loadInstancesByAssetId(assetId, value);
+                      } else {
+                        print(
+                          'Asset ID not found for: $value',
+                        ); // Debug log
+                      }
+                    }
+                  },
+                ),
+                SizedBox(height: 20),
+
+                // Instance Dropdown
+                DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: 'Select Instance',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: AppColors.formBorder,
+                        width: 1,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  value: _selectedInstance,
+                  items: _loadingInstances
+                      ? []
+                      : (_assetInstances[_selectedAsset] ?? [])
+                      .map<DropdownMenuItem<String>>((
+                      String value,
+                      ) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  })
+                      .toList(),
+                  validator: (value) =>
+                  value == null ? 'Please select instance' : null,
+                  onChanged: _selectedAsset != null && !_loadingInstances
+                      ? (value) {
+                    setState(() {
+                      _selectedInstance = value;
+                    });
+                  }
+                      : null,
+                ),
+
+                // Loading indicator for instances
+                if (_loadingInstances) ...[
+                  SizedBox(height: 8),
+                  Row(
                     children: [
-                      // Asset Dropdown
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'Select Asset',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: AppColors.formBorder,
-                              width: 1,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                        value: _selectedAsset,
-                        items: _assets.map((AssetsModel asset) {
-                          return DropdownMenuItem<String>(
-                            value: asset.assetName,
-                            child: Text(asset.assetName),
-                          );
-                        }).toList(),
-                        validator: (value) =>
-                            value == null ? 'Please select asset' : null,
-                        onChanged: (value) {
-                          print('Asset selected: $value'); // Debug log
-                          setState(() {
-                            _selectedAsset = value;
-                            _selectedInstance = null;
-                          });
-
-                          // Load instances for selected asset
-                          if (value != null) {
-                            final assetId = _assetNameToId[value];
-                            print('Asset ID for $value: $assetId'); // Debug log
-                            if (assetId != null) {
-                              _loadInstancesByAssetId(assetId, value);
-                            } else {
-                              print(
-                                'Asset ID not found for: $value',
-                              ); // Debug log
-                            }
-                          }
-                        },
-                      ),
-                      SizedBox(height: 20),
-
-                      // Instance Dropdown
-                      DropdownButtonFormField<String>(
-                        decoration: InputDecoration(
-                          labelText: 'Select Instance',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: AppColors.formBorder,
-                              width: 1,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                        value: _selectedInstance,
-                        items: _loadingInstances
-                            ? []
-                            : (_assetInstances[_selectedAsset] ?? [])
-                                  .map<DropdownMenuItem<String>>((
-                                    String value,
-                                  ) {
-                                    return DropdownMenuItem<String>(
-                                      value: value,
-                                      child: Text(value),
-                                    );
-                                  })
-                                  .toList(),
-                        validator: (value) =>
-                            value == null ? 'Please select instance' : null,
-                        onChanged: _selectedAsset != null && !_loadingInstances
-                            ? (value) {
-                                setState(() {
-                                  _selectedInstance = value;
-                                });
-                              }
-                            : null,
-                      ),
-
-                      // Loading indicator for instances
-                      if (_loadingInstances) ...[
-                        SizedBox(height: 8),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text(
-                              'Loading instances...',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-
-                      SizedBox(height: 20),
-
-                      // Remarks
-                      TextFormField(
-                        controller: _remarksController,
-                        decoration: InputDecoration(
-                          labelText: 'Remarks',
-                          alignLabelWithHint: true,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: AppColors.formBorder,
-                              width: 1,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                        ),
-                        maxLines: 4,
-                        validator: (value) =>
-                            value!.isEmpty ? 'Please enter remarks' : null,
-                      ),
-                      SizedBox(height: 20),
-
-                      // Image Upload
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          height: 150,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: _selectedImage == null
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.camera_alt_outlined,
-                                      size: 40,
-                                      color: Colors.grey,
-                                    ),
-                                    Text(
-                                      'Tap to upload photo (optional)',
-                                      style: TextStyle(color: Colors.grey),
-                                    ),
-                                  ],
-                                )
-                              : Stack(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.file(
-                                        File(_selectedImage!.path),
-                                        height: 150,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedImage = null;
-                                          });
-                                        },
-                                        child: Container(
-                                          padding: EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black54,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            Icons.close,
-                                            size: 18,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                      SizedBox(height: 30),
-
-                      // Submit Button
                       SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isSubmitting
-                              ? null
-                              : _submitRepairRequest,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.buttonText,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: _isSubmitting
-                              ? Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Creating Request...',
-                                      style: AppTextStyles.bodyLarge.copyWith(
-                                        color: AppColors.buttonText,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Text(
-                                  'Submit Request',
-                                  style: AppTextStyles.bodyLarge.copyWith(
-                                    color: AppColors.buttonText,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Loading instances...',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
                         ),
                       ),
                     ],
                   ),
+                ],
+
+                SizedBox(height: 20),
+
+                // Remarks
+                TextFormField(
+                  controller: _remarksController,
+                  decoration: InputDecoration(
+                    labelText: 'Remarks',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: AppColors.formBorder,
+                        width: 1,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                  ),
+                  maxLines: 4,
+                  validator: (value) =>
+                  value!.isEmpty ? 'Please enter remarks' : null,
                 ),
-              ),
+                SizedBox(height: 20),
+
+                // Image Upload
+                GestureDetector(
+                  onTap: _pickImage,
+                  child: Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: _selectedImage == null
+                        ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.camera_alt_outlined,
+                          size: 40,
+                          color: Colors.grey,
+                        ),
+                        Text(
+                          'Tap to upload photo (optional)',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    )
+                        : Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(_selectedImage!.path),
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedImage = null;
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close,
+                                size: 18,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 30),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : _submitRepairRequest,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.buttonText,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isSubmitting
+                        ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                            AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'Creating Request...',
+                          style: AppTextStyles.bodyLarge.copyWith(
+                            color: AppColors.buttonText,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    )
+                        : Text(
+                      'Submit Request',
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        color: AppColors.buttonText,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -39,7 +39,7 @@ class _InstanceCheckinPageState extends State<InstanceCheckinPage> {
   void _handleCheckin() {
     if (_formKey.currentState!.validate()) {
       final instanceId =
-          int.tryParse(widget.instance['InstanceId']?.toString() ?? '0') ?? 0;
+          int.tryParse(widget.instance['instanceId']?.toString() ?? '0') ?? 0;
 
       if (instanceId == 0) {
         _showErrorSnackBar('Invalid instance ID');
@@ -106,7 +106,7 @@ class _InstanceCheckinPageState extends State<InstanceCheckinPage> {
                 style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
               ),
               Text(
-                'ID: ${widget.instance['InstanceId']}',
+                'ID: ${widget.instance['instanceId']}',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -177,13 +177,13 @@ class _InstanceCheckinPageState extends State<InstanceCheckinPage> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            widget.instance['AssetName'] ?? 'Unknown Asset',
+                            widget.instance['assetName'] ?? 'Unknown Asset',
                             style: AppTextStyles.h4.copyWith(
                               color: AppColors.info,
                             ),
                           ),
                           Text(
-                            'Type: ${widget.instance['Type']} | Status: ${widget.instance['Status']}',
+                            'Type: ${widget.instance['type']} | Status: ${widget.instance['status']}',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.info.withOpacity(0.8),
                             ),

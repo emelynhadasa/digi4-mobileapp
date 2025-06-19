@@ -130,21 +130,22 @@ class _RepairPageState extends State<RepairPage>
             'Repair Requests',
             style: AppTextStyles.h2.copyWith(color: AppColors.textPrimary),
           ),
+          const SizedBox(width: 12), // Jarak tambahan antara teks dan tombol
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.buttonPrimary,
               foregroundColor: AppColors.buttonText,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8), // lebih compact
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               elevation: 2,
             ),
             onPressed: _navigateToNewRepair,
-            icon: Icon(Icons.add, size: 20),
+            icon: const Icon(Icons.add, size: 18), // ikon sedikit lebih kecil
             label: Text(
               'Add Request',
-              style: AppTextStyles.bodyMedium.copyWith(
+              style: AppTextStyles.bodySmall.copyWith( // ukuran lebih kecil
                 color: AppColors.buttonText,
                 fontWeight: FontWeight.w600,
               ),
@@ -425,12 +426,6 @@ class _RepairPageState extends State<RepairPage>
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 4),
-                          // Text(
-                          //   'ID: ${repair.repairRequestId}',
-                          //   style: AppTextStyles.caption.copyWith(
-                          //     color: AppColors.textSecondary,
-                          //   ),
-                          // ),
                         ],
                       ),
                     ),

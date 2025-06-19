@@ -2,6 +2,8 @@ import 'package:bloc/bloc.dart';
 import 'package:digi4_mobile/models/user_model.dart';
 import 'package:digi4_mobile/services/auth_service.dart';
 import 'package:meta/meta.dart';
+import 'package:digi4_mobile/routes.dart';
+import 'package:flutter/widgets.dart';
 
 part 'auth_event.dart';
 part 'auth_state.dart';
@@ -46,12 +48,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(RegisterFailure(message: e.toString()));
     }
   }
-
   Future<void> _handleLogoutRequested(
-    AuthLogoutRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthInitial());
+      AuthLogoutRequested event,
+      Emitter<AuthState> emit,
+      ) async {
+    try {
+      await _authService.logout();
+      emit(AuthInitial());
+
+      Navigator.of(event.context, rootNavigator: true).pushNamedAndRemoveUntil(
+        AppRoutes.login,
+            (route) => false, // Hapus semua route
+      );
+    } catch (e) {
+      emit(LoginFailure(message: e.toString()));
+    }
   }
 
   Future<UserModel> login(String email, String password) async {

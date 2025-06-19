@@ -8,6 +8,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:digi4_mobile/models/assets_model.dart';
 import 'package:http/http.dart' as http;
 
 class ScanPage extends StatefulWidget {
@@ -20,6 +21,11 @@ class ScanPage extends StatefulWidget {
 class _ScanPageState extends State<ScanPage> {
   // Controller tetap dibutuhkan untuk manajemen dasar kamera
   final MobileScannerController _scannerController = MobileScannerController();
+
+  String _capitalizeFirstLetter(String input) {
+    if (input.isEmpty) return input;
+    return input[0].toUpperCase() + input.substring(1);
+  }
 
   // Flag untuk mencegah pemindaian berulang saat navigasi
   bool _isProcessing = false;
@@ -140,11 +146,26 @@ class _ScanPageState extends State<ScanPage> {
         final response = await http.get(url).timeout(const Duration(seconds: 8)); // kasi timeout 8 detik
 
         if (response.statusCode == 200) {
-          final Map<String, dynamic> instance = json.decode(response.body);
+          final Map<String, dynamic> rawInstance = json.decode(response.body);
+
+          // 🔧 Normalisasi semua key ke camelCase (ex: AssetId → assetId)
+          final Map<String, dynamic> instance = {};
+          for (final entry in rawInstance.entries) {
+            final String camelKey = entry.key[0].toLowerCase() + entry.key.substring(1);
+            final value = entry.value;
+            instance[camelKey] = value is Map || value is List ? value : value?.toString();
+          }
+          print('INSTANCE NORMALIZED:');
+          instance.forEach((k, v) => print('$k: ${v.runtimeType} = $v'));
+
+          // Tetap lakukan ini untuk si qrCodeUrl
+          final qrRawData = instance['qrCodeUrl'];
+          instance['qrCodeUrl'] = qrRawData != null && qrRawData != ''
+              ? 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=$qrRawData'
+              : '';
 
           if (!mounted) return;
 
-          // Pindah navigasi ke luar try supaya pasti scanner di restart setelah page pop
           await Navigator.push(
             context,
             MaterialPageRoute(

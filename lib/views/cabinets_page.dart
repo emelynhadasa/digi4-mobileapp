@@ -7,6 +7,7 @@ import 'package:digi4_mobile/views/cabinet_edit_page.dart';
 import 'package:digi4_mobile/views/shelf_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:convert';
 
 class CabinetsPage extends StatefulWidget {
   final String? plantId;
@@ -70,13 +71,11 @@ class _CabinetsPageState extends State<CabinetsPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.buttonPrimary,
                     foregroundColor: AppColors.buttonText,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                    elevation: 2,
                   ),
                   onPressed: () async {
                     final result = await Navigator.push(
@@ -98,9 +97,9 @@ class _CabinetsPageState extends State<CabinetsPage> {
                   },
                   child: Text(
                     'Add Cabinet',
-                    style: AppTextStyles.bodyLarge.copyWith(
+                    style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.buttonText,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -133,18 +132,19 @@ class _CabinetsPageState extends State<CabinetsPage> {
                   }
                   // Success state - convert Cabinet to Map format
                   else if (state is GetCabinetsSuccess) {
+
                     final cabinetsData = state.cabinets
-                        .map(
-                          (cabinet) => {
-                            'name': cabinet.cabinetName,
-                            'type': cabinet.cabinetType,
-                            'shelves':
-                                0, // Default value jika tidak ada di model
-                            'cabinetId':
-                                cabinet.cabinetId, // Tambahan untuk referensi
-                          },
-                        )
-                        .toList();
+                        .map((cabinet) {
+
+                      return {
+                        'name': cabinet.cabinetName,
+                        'type': cabinet.cabinetType,
+                        'shelves': 0,
+                        'cabinetId': cabinet.cabinetId,
+                        'cabinetImage': cabinet.cabinetImage,
+                        'cabinetImageBase64': cabinet.cabinetImageBase64,
+                      };
+                    }).toList();
 
                     if (cabinetsData.isEmpty) {
                       return _buildEmptyState();
@@ -296,6 +296,51 @@ class _CabinetsPageState extends State<CabinetsPage> {
   }
 
   Widget _buildCabinetItem(Map<String, dynamic> cabinet, BuildContext context) {
+    final String? imageUrl = cabinet['cabinetImage'] as String?;
+    final String? base64 = cabinet['cabinetImageBase64'] as String?;
+
+    Widget imageWidget;
+    if (base64 != null && base64.trim().isNotEmpty) {
+      try {
+        final cleanBase64 = base64.contains(',') ? base64.split(',')[1] : base64;
+        final bytes = base64Decode(cleanBase64);
+        imageWidget = SizedBox(
+          width: 80,
+          height: 80,
+          child: Image.memory(
+            bytes,
+            fit: BoxFit.cover,
+          ),
+        );
+      } catch (e) {
+        print('⚠️ Error decoding base64: $e');
+        imageWidget = SizedBox(
+          width: 80,
+          height: 80,
+          child: Icon(Icons.broken_image, size: 40),
+        );
+      }
+    } else if (imageUrl != null && imageUrl.isNotEmpty) {
+      imageWidget = SizedBox(
+        width: 80,
+        height: 80,
+        child: Image.network(
+          imageUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Icon(Icons.broken_image, size: 40),
+        ),
+      );
+    } else {
+      imageWidget = SizedBox(
+        width: 80,
+        height: 80,
+        child: Container(
+          color: Colors.grey[200],
+          child: Icon(Icons.photo, size: 40, color: Colors.grey[400]),
+        ),
+      );
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -316,29 +361,40 @@ class _CabinetsPageState extends State<CabinetsPage> {
           children: [
             // Cabinet Name and Type
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    cabinet['name'] ?? 'Unknown Cabinet',
-                    style: AppTextStyles.h4.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: imageWidget,
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.info.withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    cabinet['type'] ?? 'Unknown Type',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.info,
-                      fontWeight: FontWeight.w600,
-                    ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cabinet['name'] ?? 'Unknown Cabinet',
+                        style: AppTextStyles.h4.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          cabinet['type'] ?? 'Unknown Type',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.info,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -442,146 +498,11 @@ class _CabinetsPageState extends State<CabinetsPage> {
                     }
                   },
                 ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Delete'),
-                  onPressed: () {
-                    _showDeleteConfirmation(context, cabinet);
-                  },
-                ),
               ],
             ),
           ],
         ),
       ),
-    );
-  }
-
-  void _showDeleteConfirmation(
-    BuildContext context,
-    Map<String, dynamic> cabinet,
-  ) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(Icons.warning_rounded, color: AppColors.error, size: 24),
-              SizedBox(width: 12),
-              Text(
-                'Delete Cabinet',
-                style: AppTextStyles.h4.copyWith(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Are you sure you want to delete this cabinet?',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              SizedBox(height: 12),
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Cabinet: ${cabinet['name'] ?? 'Unknown'}',
-                      style: AppTextStyles.bodyMedium.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Type: ${cabinet['type'] ?? 'Unknown Type'}',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 12),
-              Text(
-                'This action cannot be undone. All shelves and assets in this cabinet will also be affected.',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Cancel',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.error,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              icon: Icon(Icons.delete_forever, size: 18),
-              label: Text(
-                'Delete',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                // TODO: Implement delete cabinet functionality
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Cabinet "${cabinet['name']}" deleted'),
-                    backgroundColor: AppColors.success,
-                  ),
-                );
-              },
-            ),
-          ],
-        );
-      },
     );
   }
 }

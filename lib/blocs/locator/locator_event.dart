@@ -35,12 +35,14 @@ class EditCabinet extends LocatorEvent {
   final String plantId;
   final String cabinetName;
   final String cabinetType;
+  final File? imageFile;
 
   EditCabinet({
     required this.cabinetId,
     required this.plantId,
     required this.cabinetName,
     required this.cabinetType,
+    this.imageFile,
   });
 }
 
@@ -50,6 +52,8 @@ class AddCabinet extends LocatorEvent {
   final String cabinetType;
   final String labelMode;
   final int shelfCount;
+  final List<String>? manualLabelsList;
+  final File? imageFile;
 
   AddCabinet({
     required this.plantId,
@@ -57,6 +61,8 @@ class AddCabinet extends LocatorEvent {
     required this.cabinetType,
     required this.shelfCount,
     required this.labelMode,
+    this.manualLabelsList,
+    this.imageFile,
   });
 }
 

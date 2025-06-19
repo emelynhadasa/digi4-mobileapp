@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:digi4_mobile/blocs/locator/locator_bloc.dart';
 import 'package:digi4_mobile/styles/color.dart';
 import 'package:digi4_mobile/styles/shared_typography.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 
 class CabinetAddPage extends StatefulWidget {
   final String plantId;
@@ -25,6 +27,7 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
   // Form State
   String _labelMode = 'auto'; // 'auto' or 'manual'
   bool _isSubmitting = false;
+  File? _selectedImage;
 
   @override
   void initState() {
@@ -43,20 +46,52 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
     });
   }
 
+  Future<void> _pickImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _selectedImage = File(picked.path);
+      });
+    }
+  }
+
   Future<void> _submitCabinet() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validate manual labels if manual mode is selected
-    if (_labelMode == 'manual' && _manualLabelsController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please enter manual labels when manual mode is selected',
+    final cabinetName = _cabinetNameController.text.trim();
+    final cabinetType = _cabinetTypeController.text.trim();
+    final shelfCount = int.parse(_shelfCountController.text.trim());
+
+    // Jika labelMode manual, cek bahwa field manualLabels tidak kosong
+    if (_labelMode == 'manual') {
+      final raw = _manualLabelsController.text.trim();
+      if (raw.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please enter manual labels when manual mode is selected'),
+            backgroundColor: AppColors.error,
           ),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
+        );
+        return;
+      }
+
+      // Split string menjadi List<String> dan trim setiap elemen
+      final labels = raw
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      // Validasi bahwa jumlah label sama dengan shelfCount
+      if (labels.length != shelfCount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Number of manual labels must match shelf count ($shelfCount)'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() {
@@ -64,21 +99,43 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
     });
 
     try {
-      // Create cabinet via BLoC
-      context.read<LocatorBloc>().add(
-        AddCabinet(
-          plantId: widget.plantId,
-          cabinetName: _cabinetNameController.text.trim(),
-          cabinetType: _cabinetTypeController.text.trim(),
-          labelMode: _labelMode,
-          shelfCount: int.parse(_shelfCountController.text.trim()),
-        ),
-      );
+      // Kirim event ke Bloc dengan / tanpa daftar manualLabels
+      if (_labelMode == 'manual') {
+        final raw = _manualLabelsController.text.trim();
+        final labels = raw
+            .split(',')
+            .map((s) => s.trim())
+            .where((s) => s.isNotEmpty)
+            .toList();
+
+        context.read<LocatorBloc>().add(
+          AddCabinet(
+            plantId: widget.plantId,
+            cabinetName: cabinetName,
+            cabinetType: cabinetType,
+            labelMode: _labelMode,
+            shelfCount: shelfCount,
+            manualLabelsList: labels,
+            imageFile: _selectedImage,// <-- kirim List<String> di sini
+          ),
+        );
+      } else {
+        context.read<LocatorBloc>().add(
+          AddCabinet(
+            plantId: widget.plantId,
+            cabinetName: cabinetName,
+            cabinetType: cabinetType,
+            labelMode: _labelMode,
+            shelfCount: shelfCount,
+            manualLabelsList: null,
+            imageFile: _selectedImage,// mode auto-generate
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
         _isSubmitting = false;
       });
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -398,7 +455,7 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
                       children: [
                         ActionChip(
                           label: Text(
-                            'Large Metal',
+                            'Door Cupboard',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.primary,
                             ),
@@ -410,12 +467,12 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
                           onPressed: _isSubmitting
                               ? null
                               : () {
-                                  _cabinetTypeController.text = 'Large Metal';
+                                  _cabinetTypeController.text = 'Door Cupboard';
                                 },
                         ),
                         ActionChip(
                           label: Text(
-                            'Small Metal',
+                            'Open Cabinet',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.primary,
                             ),
@@ -427,12 +484,12 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
                           onPressed: _isSubmitting
                               ? null
                               : () {
-                                  _cabinetTypeController.text = 'Small Metal';
+                                  _cabinetTypeController.text = 'Open Cabinet';
                                 },
                         ),
                         ActionChip(
                           label: Text(
-                            'Wood Cabinet',
+                            'Sofa Cabinet',
                             style: AppTextStyles.bodySmall.copyWith(
                               color: AppColors.primary,
                             ),
@@ -444,7 +501,7 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
                           onPressed: _isSubmitting
                               ? null
                               : () {
-                                  _cabinetTypeController.text = 'Wood Cabinet';
+                                  _cabinetTypeController.text = 'Sofa Cabinet';
                                 },
                         ),
                       ],
@@ -724,6 +781,46 @@ class _CabinetAddPageState extends State<CabinetAddPage> {
                   ),
                 ),
                 SizedBox(height: 24),
+
+                Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  margin: const EdgeInsets.symmetric(vertical: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Cabinet Image (optional)',
+                          style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: _isSubmitting ? null : _pickImage,
+                          icon: Icon(Icons.image_outlined),
+                          label: Text('Pick Image'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                        if (_selectedImage != null) ...[
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(
+                              _selectedImage!,
+                              height: 160,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
 
                 // Action Buttons
                 Row(

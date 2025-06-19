@@ -90,7 +90,9 @@ class _InstanceCheckoutPageState extends State<InstanceCheckoutPage> {
   @override
   Widget build(BuildContext context) {
     final bool isConsumable = widget.instance['type'] == 'Consumable';
-    final int availableQty = widget.instance['qty'] ?? 0;
+    final int availableQty = int.tryParse(
+        widget.instance['qty']?.toString() ?? '0'
+    ) ?? 0;
 
     return BlocListener<AssetsBloc, AssetsState>(
       listener: (context, state) {
