@@ -103,7 +103,7 @@ class _EditAssetPageState extends State<EditAssetPage> {
 
       // Dispatch update event
       context.read<AssetsBloc>().add(
-        AssetUpdateRequested(assetId: _assetId!, assetData: updateData),
+        AssetUpdateRequested(assetId: _assetId!, assetData: updateData, imagePath: _selectedImage?.path,),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

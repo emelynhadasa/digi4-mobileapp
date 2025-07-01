@@ -26,7 +26,7 @@ class AssetsService {
       request.headers.addAll({
         ...Constant.header,
         'Authorization': 'Bearer $token',
-        'Content-Type': 'multipart/form-data',
+        // 'Content-Type': 'multipart/form-data',
       });
 
       final assetJson = jsonEncode(assetData);
@@ -151,42 +151,97 @@ class AssetsService {
   Future<void> updateAsset({
     required int assetId,
     required Map<String, dynamic> assetData,
+    String? imagePath,
   }) async {
-    try {
-      // Dapatkan token
-      String? token = await Token.getToken();
+    final token = await Token.getToken();
 
-      final headers = <String, String>{
-        ...Constant.header,
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      };
+    // Kalau ada gambar, pakai MultipartRequest
+    if (imagePath != null && imagePath.isNotEmpty) {
+      final uri = Uri.parse('${Constant.baseUrl}/assets/$assetId');
+      final request = http.MultipartRequest('PUT', uri)
+        ..headers.addAll({
+          ...Constant.header,
+          'Authorization': 'Bearer $token',
+          // jangan atur Content-Type; MultipartRequest otomatis mengisi
+        });
 
-      // Kirim data sebagai application/json
-      final response = await http.put(
-        Uri.parse('${Constant.baseUrl}/assets/$assetId'),
-        //headers: Constant.header,
-        headers: headers,
-        body: jsonEncode(assetData),
+      // lampirkan field JSON
+      request.fields['asset'] = jsonEncode(assetData);
+
+      // lampirkan file gambar
+      final file = File(imagePath);
+      final fileName = path.basename(file.path);
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image',
+          file.path,
+          filename: fileName,
+        ),
       );
 
-      print('Update Asset URL: ${Constant.baseUrl}/api/assets/$assetId');
-      print('Update Asset Headers: ${Constant.header}');
-      print('Update Asset Body: ${jsonEncode(assetData)}');
-      print('Update Asset response code: ${response.statusCode}');
-      print('Update Asset response body: ${response.body}');
-
-      if (response.statusCode == 204) {
-        return;
-      } else {
-        throw Exception(
-          'Failed to update asset: ${response.statusCode} - ${response.body}',
-        );
+      final streamed = await request.send();
+      final resp     = await http.Response.fromStream(streamed);
+      if (resp.statusCode != 204) {
+        throw Exception('Failed updating asset (with image): '
+            '${resp.statusCode} / ${resp.body}');
       }
-    } catch (e) {
-      throw Exception('Error updating asset: $e');
+    } else {
+      // fallback JSON-only
+      final resp = await http.put(
+        Uri.parse('${Constant.baseUrl}/assets/$assetId'),
+        headers: {
+          ...Constant.header,
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(assetData),
+      );
+      if (resp.statusCode != 204) {
+        throw Exception('Failed updating asset: '
+            '${resp.statusCode} / ${resp.body}');
+      }
     }
   }
+
+  // Future<void> updateAsset({
+  //   required int assetId,
+  //   required Map<String, dynamic> assetData,
+  // }) async {
+  //   try {
+  //     // Dapatkan token
+  //     String? token = await Token.getToken();
+  //
+  //     final headers = <String, String>{
+  //       ...Constant.header,
+  //       'Authorization': 'Bearer $token',
+  //       'Content-Type': 'application/json',
+  //     };
+  //
+  //     // Kirim data sebagai application/json
+  //     final response = await http.put(
+  //       Uri.parse('${Constant.baseUrl}/assets/$assetId'),
+  //       //headers: Constant.header,
+  //       headers: headers,
+  //       body: jsonEncode(assetData),
+  //     );
+  //
+  //     print('Update Asset URL: ${Constant.baseUrl}/api/assets/$assetId');
+  //     print('Update Asset Headers: ${Constant.header}');
+  //     print('Update Asset Body: ${jsonEncode(assetData)}');
+  //     print('Update Asset response code: ${response.statusCode}');
+  //     print('Update Asset response body: ${response.body}');
+  //
+  //     if (response.statusCode == 204) {
+  //       return;
+  //     } else {
+  //       throw Exception(
+  //         'Failed to update asset: ${response.statusCode} - ${response.body}',
+  //       );
+  //     }
+  //   } catch (e) {
+  //     throw Exception('Error updating asset: $e');
+  //   }
+  // }
 
   Future<void> uploadAssetImage({
     required int assetId,

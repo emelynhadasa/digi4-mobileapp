@@ -49,7 +49,6 @@ class _CreateAssetPageState extends State<CreateAssetPage> {
         "UnitOfMeasure": _selectedCategory == 'Consumable' ? _unitController.text : null,
       };
 
-
       // Set loading state
       setState(() {
         _isLoading = true;

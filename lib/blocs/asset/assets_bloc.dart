@@ -84,6 +84,7 @@ class AssetsBloc extends Bloc<AssetsEvent, AssetsState> {
       await _assetsService.updateAsset(
         assetId: event.assetId,
         assetData: event.assetData,
+        imagePath: event.imagePath,
       );
 
       try {

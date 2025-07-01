@@ -493,7 +493,6 @@ class _AssetsPageState extends State<AssetsPage> {
   }
 
   Widget _buildAssetItem(dynamic asset, int index) {
-    // Handle both Map<String, dynamic> and AssetsModel
     String name = '';
     String specs = '';
     String imageUrl = '';
