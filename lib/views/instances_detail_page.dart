@@ -14,7 +14,6 @@ import 'package:digi4_mobile/services/instance_service.dart';
 
 class InstancesDetailPage extends StatefulWidget {
   final Map<String, dynamic> instance;
-
   const InstancesDetailPage({super.key, required this.instance});
 
   @override
@@ -445,10 +444,10 @@ class _InstancesDetailPageState extends State<InstancesDetailPage> {
                   'Location',
                   instance['location'] ?? instance['Location'],
                 ),
-                _buildDetailRow(
-                  'Shelf',
-                  instance['shelf'] ?? instance['Shelf'],
-                ),
+                // _buildDetailRow(
+                //   'Shelf',
+                //   instance['shelf'] ?? instance['Shelf'],
+                // ),
 
                 SizedBox(height: 16),
 

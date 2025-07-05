@@ -61,9 +61,14 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
     },
   ];
 
+  late final bool _isConsumable;
   @override
   void initState() {
     super.initState();
+
+    final typeString = widget.instance['type'] as String? ?? '';
+    _isConsumable = typeString.toLowerCase() == 'consumable';
+
     // Load plants when page initializes
     context.read<LocatorBloc>().add(LoadPlants());
     _initializeFields();
@@ -71,7 +76,7 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
 
   void _initializeFields() {
     // Initialize form fields with current instance data
-    _quantityController.text = widget.instance['quantity']?.toString() ?? '1';
+    _quantityController.text = widget.instance['qty']?.toString() ?? '1';
     _restockThresholdController.text =
         widget.instance['restockThreshold']?.toString() ?? '1';
     _shelfLifeController.text =
@@ -112,6 +117,7 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
     print('Plant ID: ${widget.instance['plantId']}');
     print('Cabinet ID: ${widget.instance['cabinetId']}');
     print('Shelf ID: ${widget.instance['shelfId']}');
+    print("TYPE = ${widget.instance.runtimeType}");
   }
 
   // Manual onChanged methods for user interaction
@@ -266,11 +272,6 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
         return;
       }
 
-      if (_warrantyExpiryDate == null) {
-        _showErrorSnackBar('Please select warranty expiry date');
-        return;
-      }
-
       // PERBAIKAN: Ensure consistent ID format and include InstanceId in body
       final instanceIdInt = int.tryParse(instanceId.toString()) ?? 0;
 
@@ -292,7 +293,7 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
         'ShelfLife': int.tryParse(_shelfLifeController.text) ?? 365,
         'Condition': _selectedCondition ?? 'Good',
         'Status': _selectedStatus ?? 'Available', // TAMBAHAN: Include status
-        'WarrantyExpiryDate': _warrantyExpiryDate!.toUtc().toIso8601String(),
+        'WarrantyExpiryDate': _warrantyExpiryDate?.toUtc().toIso8601String(),
         'Lifetime': int.tryParse(_lifetimeController.text) ?? 730,
         'SerialNumber': _serialNumberController.text.trim(),
       };
@@ -466,8 +467,7 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
                               ),
                               SizedBox(height: 4),
                               Text(
-                                widget.instance['instanceId']?.toString() ??
-                                    'Unknown',
+                                widget.instance['instanceId']?.toString() ?? 'Unknown',
                                 style: AppTextStyles.bodyLarge.copyWith(
                                   color: AppColors.info,
                                   fontWeight: FontWeight.bold,
@@ -491,8 +491,6 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
                           Icons.location_on_outlined,
                         ),
                         SizedBox(height: 16),
-
-                        // Plant Dropdown
                         _buildPlantDropdownFormField(
                           value: _selectedPlant,
                           items: _availablePlants,
@@ -500,8 +498,6 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
                           onChanged: _onPlantChanged,
                         ),
                         SizedBox(height: 20),
-
-                        // Cabinet Dropdown (enabled only when plant is selected)
                         _buildCabinetDropdownFormField(
                           value: _selectedCabinet,
                           items: _availableCabinets,
@@ -510,8 +506,6 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
                           onChanged: _onCabinetChanged,
                         ),
                         SizedBox(height: 20),
-
-                        // Shelf Dropdown (enabled only when cabinet is selected)
                         _buildShelfDropdownFormField(
                           value: _selectedShelf,
                           items: _availableShelves,
@@ -528,210 +522,193 @@ class _InstanceEditPageState extends State<InstanceEditPage> {
                         ),
                         SizedBox(height: 16),
 
-                        // Serial Number Field
-                        _buildTextFormField(
-                          controller: _serialNumberController,
-                          labelText: 'Serial Number',
-                          hintText: 'e.g., SN123456789',
-                          validator: (value) => value!.isEmpty
-                              ? 'Please enter serial number'
-                              : null,
-                        ),
-                        SizedBox(height: 20),
-
-                        // TAMBAHAN: Status and Condition Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Status',
-                                    style: AppTextStyles.bodyLarge.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  _buildStatusDropdownFormField(
-                                    value: _selectedStatus,
-                                    items: _statusOptions,
-                                    labelText: 'Status',
-                                    hintText: 'Select status',
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedStatus = value;
-                                      });
-                                    },
-                                    validator: (value) => value == null
-                                        ? 'Please select status'
-                                        : null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Condition',
-                                    style: AppTextStyles.bodyLarge.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  SizedBox(height: 8),
-                                  _buildStringDropdownFormField(
-                                    value: _selectedCondition,
-                                    items: _conditionOptions,
-                                    labelText: 'Condition',
-                                    hintText: 'Select condition',
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedCondition = value;
-                                      });
-                                    },
-                                    validator: (value) => value == null
-                                        ? 'Please select condition'
-                                        : null,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
-
-                        // TAMBAHAN: Status Change Warning
-                        if (_selectedStatus !=
-                            widget.instance['status']?.toString())
-                          Container(
-                            margin: EdgeInsets.only(bottom: 20),
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: AppColors.warning.withOpacity(0.3),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  color: AppColors.warning,
-                                  size: 20,
-                                ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Status Change Detected',
-                                        style: AppTextStyles.bodyMedium
-                                            .copyWith(
-                                              color: AppColors.warning,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                      ),
-                                      Text(
-                                        'Changing from "${widget.instance['status']}" to "$_selectedStatus"',
-                                        style: AppTextStyles.bodySmall.copyWith(
-                                          color: AppColors.warning,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                        // ── Reusable‑only fields ──
+                        if (!_isConsumable) ...[
+                          _buildTextFormField(
+                            controller: _serialNumberController,
+                            labelText: 'Serial Number',
+                            hintText: 'e.g., SN123456789',
+                            validator: (value) => value!.isEmpty
+                                ? 'Please enter serial number'
+                                : null,
                           ),
+                          SizedBox(height: 20),
 
-                        // Quantity and Restock Threshold Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _quantityController,
-                                labelText: 'Quantity',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter quantity'
-                                    : null,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Status',
+                                      style: AppTextStyles.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    _buildStatusDropdownFormField(
+                                      value: _selectedStatus,
+                                      items: _statusOptions,
+                                      labelText: 'Status',
+                                      hintText: 'Select status',
+                                      onChanged: (value) {
+                                        setState(() => _selectedStatus = value);
+                                      },
+                                      validator: (value) =>
+                                      value == null ? 'Please select status' : null,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _restockThresholdController,
-                                labelText: 'Restock Threshold',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter restock threshold'
-                                    : null,
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Condition',
+                                      style: AppTextStyles.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    _buildStringDropdownFormField(
+                                      value: _selectedCondition,
+                                      items: _conditionOptions,
+                                      labelText: 'Condition',
+                                      hintText: 'Select condition',
+                                      onChanged: (value) {
+                                        setState(() => _selectedCondition = value);
+                                      },
+                                      validator: (value) =>
+                                      value == null ? 'Please select condition' : null,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
+                            ],
+                          ),
+                          SizedBox(height: 20),
 
-                        // Shelf Life and Lifetime Row
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _shelfLifeController,
-                                labelText: 'Shelf Life (Days)',
-                                hintText: 'e.g., 365',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
+                          if (_selectedStatus != widget.instance['status']?.toString())
+                            Container(
+                              margin: EdgeInsets.only(bottom: 20),
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.warning.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: AppColors.warning,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Status Change Detected',
+                                          style: AppTextStyles.bodyMedium.copyWith(
+                                            color: AppColors.warning,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Changing from "${widget.instance['status']}" to "$_selectedStatus"',
+                                          style: AppTextStyles.bodySmall.copyWith(
+                                            color: AppColors.warning,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter shelf life'
-                                    : null,
                               ),
                             ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: _buildTextFormField(
-                                controller: _lifetimeController,
-                                labelText: 'Lifetime (Days)',
-                                hintText: 'e.g., 730',
-                                keyboardType: TextInputType.number,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                validator: (value) => value!.isEmpty
-                                    ? 'Please enter lifetime'
-                                    : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 20),
+                          SizedBox(height: 20),
 
-                        // Warranty Expiry Date
-                        _buildDatePickerField(
-                          labelText: 'Warranty Expiry Date',
-                          selectedDate: _warrantyExpiryDate,
-                          onTap: () => _selectWarrantyDate(context),
-                          validator: (value) => _warrantyExpiryDate == null
-                              ? 'Please select warranty expiry date'
-                              : null,
-                        ),
-                        SizedBox(height: 40),
+                          _buildDatePickerField(
+                            labelText: 'Warranty Expiry Date',
+                            selectedDate: _warrantyExpiryDate,
+                            onTap: () => _selectWarrantyDate(context),
+                            validator: (value) =>
+                            _warrantyExpiryDate == null
+                                ? 'Please select warranty expiry date'
+                                : null,
+                          ),
+                          SizedBox(height: 20),
+
+                          _buildTextFormField(
+                            controller: _lifetimeController,
+                            labelText: 'Lifetime (Days)',
+                            hintText: 'e.g., 730',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: (value) =>
+                            value!.isEmpty ? 'Please enter lifetime' : null,
+                          ),
+                          SizedBox(height: 20),
+                        ],
+
+                        // ── Consumable‑only fields ──
+                        if (_isConsumable) ...[
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildTextFormField(
+                                  controller: _quantityController,
+                                  labelText: 'Quantity',
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  validator: (value) =>
+                                  value!.isEmpty ? 'Please enter quantity' : null,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: _buildTextFormField(
+                                  controller: _restockThresholdController,
+                                  labelText: 'Restock Threshold',
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  validator: (value) => value!.isEmpty
+                                      ? 'Please enter restock threshold'
+                                      : null,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 20),
+
+                          _buildTextFormField(
+                            controller: _shelfLifeController,
+                            labelText: 'Shelf Life (Days)',
+                            hintText: 'e.g., 365',
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            validator: (value) =>
+                            value!.isEmpty ? 'Please enter shelf life' : null,
+                          ),
+                          SizedBox(height: 20),
+                        ],
 
                         // Update Button
                         SizedBox(

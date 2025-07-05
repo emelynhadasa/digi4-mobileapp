@@ -68,6 +68,8 @@ class AssetInstances {
   final int? quantity;
   final int? restockThreshold;
   final int? shelfLife;
+  final int? plantId;
+  final int? cabinetId;
 
   AssetInstances({
     required this.instanceId,
@@ -75,6 +77,8 @@ class AssetInstances {
     required this.qrCodeId,
     required this.encodedData,
     required this.qrCodeImageBase64,
+    this.plantId,
+    this.cabinetId,
     this.shelfId,
     required this.location,
     required this.condition,
@@ -114,7 +118,9 @@ class AssetInstances {
       qrCodeId: json['QrCodeId'] as int? ?? 0,
       encodedData: (json['EncodedData'] as String?) ?? '',
       qrCodeImageBase64: (json['QrCodeImageBase64'] as String?) ?? '',
-      shelfId: json['ShelfId'] as int?, // tetap null jika JSON-nya null
+      plantId:   (json['plantId']   ?? json['PlantId'])   as int?,
+      cabinetId: (json['cabinetId'] ?? json['CabinetId']) as int?,
+      shelfId:   (json['shelfId']   ?? json['ShelfId'])   as int?,
       location: (json['Location'] as String?) ?? '',
       condition: (json['Condition'] as String?) ?? '',
       status: (json['Status'] as String?) ?? '',

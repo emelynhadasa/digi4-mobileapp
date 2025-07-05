@@ -131,7 +131,12 @@ class _InstancesPageState extends State<InstancesPage>
             ? '${instance.lifetime} Years'
             : 'N/A',
         'serialNumber': instance.serialNumber ?? 'N/A',
+        // 'plant': plant,
+        // 'shelf': shelfValue,
+        // 'shelfId': instance.shelfId,
         'plant': plant,
+        'plantId': instance.plantId,
+        'cabinetId': instance.cabinetId,
         'shelf': shelfValue,
         'shelfId': instance.shelfId,
 
